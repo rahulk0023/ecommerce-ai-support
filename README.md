@@ -1,6 +1,6 @@
-# ecommerce-ai-support
+# ShopCare AI — E-Commerce AI Customer Support
 
-A full-stack AI-powered customer support system for an e-commerce platform. Customers can raise support tickets, chat with an AI agent, request refunds, and track resolutions. Support staff can review escalations and approve or reject refund requests.
+Full-stack AI-powered customer support system. Customers chat with an AI agent, raise tickets, request refunds, and track resolutions. Staff review escalations and approve/reject high-value refunds.
 
 ## Tech Stack
 
@@ -10,108 +10,156 @@ A full-stack AI-powered customer support system for an e-commerce platform. Cust
 | Backend | Python 3.11 + FastAPI |
 | Database | PostgreSQL 15 |
 | Auth | JWT (python-jose + bcrypt) |
-| AI Agent | Rule-based mock LLM (drop-in replaceable with Gemini/OpenAI) |
-| Policy Retrieval | Keyword-based search over `return_policy.txt` |
+| AI Agent | Rule-based mock LLM (drop-in for Gemini/OpenAI) |
 | Deployment | Docker + Docker Compose |
 
-## Project Structure
+## Key Features
 
+- **Order Creation** — Authenticated customers can create orders via UI modal (`POST /orders/`)
+- **In-Chat Refund Form** — Refund form appears in chat when customer mentions refund; shows live ≤/> ₹5,000 indicator
+- **Auto-Approval** — Refunds ≤ ₹5,000 are automatically approved; > ₹5,000 are escalated to staff
+- **Multi-turn AI Agent** — Context-aware chat with 4 tools: `get_order_details`, `search_return_policy`, `process_refund`, `escalate_to_human`
+- **Prompt Injection Detection** — Agent guards against adversarial inputs with audit logging
+- **System Notifications** — After refund submission, a system message appears in the ticket conversation
+- **Role-based Access** — Customer / Staff / Admin roles with JWT-secured endpoints
+
+## Business Rules
+
+| Rule | Detail |
+|------|--------|
+| Return window | 7 days from delivery date |
+| Auto-approval | Refunds ≤ ₹5,000 → status: `approved` immediately |
+| Escalation | Refunds > ₹5,000 → status: `escalated`, creates Escalation record |
+| Idempotency | Duplicate refund requests blocked via idempotency key |
+| Ownership | Customers can only access their own orders and tickets |
+
+## ER Diagram
+
+```mermaid
+erDiagram
+    users {
+        int id PK
+        string name
+        string email
+        string password_hash
+        string role
+        datetime created_at
+    }
+    orders {
+        int id PK
+        int customer_id FK
+        string status
+        date delivery_date
+        float total_amount
+        string item_category
+        string item_details
+        datetime created_at
+    }
+    tickets {
+        int id PK
+        int customer_id FK
+        int order_id FK
+        string subject
+        string category
+        string status
+        string priority
+        datetime created_at
+    }
+    messages {
+        int id PK
+        int ticket_id FK
+        string sender_type
+        int sender_id
+        text content
+        datetime created_at
+    }
+    refunds {
+        int id PK
+        int order_id FK
+        int ticket_id FK
+        float amount
+        string reason
+        string status
+        int requested_by FK
+        int reviewed_by FK
+        string idempotency_key
+        datetime created_at
+    }
+    escalations {
+        int id PK
+        int ticket_id FK
+        string summary
+        string priority
+        int assigned_to FK
+        string decision
+        string internal_note
+        datetime created_at
+    }
+
+    users ||--o{ orders : "places"
+    users ||--o{ tickets : "opens"
+    orders ||--o{ tickets : "linked to"
+    tickets ||--o{ messages : "contains"
+    orders ||--o{ refunds : "has"
+    tickets ||--o{ refunds : "linked to"
+    tickets ||--o{ escalations : "escalated via"
 ```
-ecommerce-ai-support/
-├── backend/
-│   ├── app/
-│   │   ├── agent/         # AI agent + tool implementations
-│   │   ├── middleware/    # Audit logging
-│   │   ├── models/        # SQLAlchemy models
-│   │   ├── routers/       # FastAPI route handlers
-│   │   ├── schemas/       # Pydantic schemas
-│   │   └── services/      # Business logic
-│   ├── data/              # return_policy.txt
-│   ├── migrations/        # DB initialization
-│   ├── seed/              # Sample data
-│   └── tests/             # pytest test suite
-├── frontend/
-│   └── src/
-│       ├── api/           # Axios client
-│       ├── components/    # Reusable UI components
-│       ├── contexts/      # Auth context
-│       ├── pages/         # Route-level page components
-│       └── types/         # TypeScript interfaces
-├── docker-compose.yml
-├── .env.example
-└── README.md
+
+## Architecture
+
+```mermaid
+flowchart TD
+    B([Browser]) --> F[React Frontend\nport 3000]
+    F -->|REST + JWT| A[FastAPI Backend\nport 8000]
+    A --> Auth[Auth & Users]
+    A --> Ord[Orders]
+    A --> Tkt[Tickets & Messages]
+    A --> Ref[Refunds]
+    A --> Esc[Escalations]
+    A --> Agent[AI Agent]
+    Agent --> T1[get_order_details]
+    Agent --> T2[search_return_policy]
+    Agent --> T3[process_refund]
+    Agent --> T4[escalate_to_human]
+    T2 --> Policy[(return_policy.txt)]
+    Auth & Ord & Tkt & Ref & Esc --> DB[(PostgreSQL\nport 5432)]
+    T1 & T3 & T4 --> DB
 ```
 
-## Prerequisites
-
-- Docker and Docker Compose installed
-- Or, for local development: Python 3.11+, Node.js 20+, PostgreSQL 15+
-
-## Running with Docker (Recommended)
+## Quick Start (Docker)
 
 ```bash
-# 1. Clone the repo
-git clone https://github.com/your-username/ecommerce-ai-support-system
+git clone <repo-url>
 cd ecommerce-ai-support
-
-# 2. Set up environment
-cp .env.example .env
-# Edit .env and set a strong SECRET_KEY and POSTGRES_PASSWORD
-
-# 3. Start everything
+cp .env.example .env        # set SECRET_KEY and POSTGRES_PASSWORD
 docker compose up --build
-
-# 4. Access the app
-# Frontend: http://localhost:3000
-# Backend API docs: http://localhost:8000/docs
 ```
 
-## Running Locally (Without Docker)
+- Frontend: http://localhost:3000
+- API Docs: http://localhost:8000/docs
 
-### Backend
+## Running Locally
 
+**Backend**
 ```bash
 cd backend
-
-# Create virtual environment
 python -m venv venv
-venv\Scripts\activate      # Windows
-# source venv/bin/activate  # Linux/Mac
-
-# Install dependencies
+venv\Scripts\activate          # Windows
 pip install -r requirements.txt
-
-# Set up environment
-cp .env.example .env
-# Edit .env — set DATABASE_URL to your local PostgreSQL
-
-# Initialize database
+cp .env.example .env           # set DATABASE_URL
 python migrations/init_db.py
-
-# Seed sample data
 python seed/seed_data.py
-
-# Start the server
 uvicorn app.main:app --reload --port 8000
 ```
 
-### Frontend
-
+**Frontend**
 ```bash
 cd frontend
-
-# Install dependencies
 npm install
-
-# Start dev server
-npm run dev
-
-# App runs at http://localhost:5173
+npm run dev                    # http://localhost:5173
 ```
 
 ## Test Accounts
-
-After running seed data:
 
 | Role | Email | Password |
 |------|-------|----------|
@@ -124,81 +172,14 @@ After running seed data:
 
 ```bash
 cd backend
-
-# Make sure test database exists first
-# (create ecommerce_support_test in PostgreSQL)
-
-# Run all tests
 pytest tests/ -v
-
-# Run specific test file
-pytest tests/test_refunds.py -v
 ```
 
-## API Documentation
-
-FastAPI generates interactive docs automatically:
-
-- **Swagger UI**: http://localhost:8000/docs
-- **ReDoc**: http://localhost:8000/redoc
-
-## Key Features
-
-### AI Agent
-- Multi-turn conversation with context from previous messages
-- 4 tools: `get_order_details`, `search_return_policy`, `process_refund`, `escalate_to_human`
-- Asks for missing info (e.g., order ID) before calling tools
-- Prompt injection detection and audit logging
-
-### Business Rules
-- **Return window**: 7 days from delivery date
-- **Auto-approval limit**: Refunds ≤ ₹5,000 go to pending; above ₹5,000 are automatically escalated
-- **Duplicate prevention**: Idempotency key support on refund requests
-- **Ownership checks**: Customers can only access their own orders and tickets
-
-### Security
-- Passwords hashed with bcrypt
-- JWT authentication on all protected routes
-- Role-based access control (customer / staff / admin)
-- Audit logging on all significant API calls
-- Input sanitization (prompt injection detection)
-
-## Architecture & Design Choices
-
-- **Why FastAPI + PostgreSQL**: FastAPI provides automatic OpenAPI/Swagger documentation, Pydantic request validation, and clean dependency injection for JWT and role-based access control. PostgreSQL enforces relational integrity with foreign keys and indexes across users, orders, tickets, messages, refunds, and escalations.
-- **Why Custom Rule-Based / Mock Agent + Keyword Retrieval**: Instead of requiring paid external LLM or vector-DB keys during local evaluation, the agent runs locally with deterministic multi-turn intent routing, prompt-injection detection, and paragraph-scoring keyword search over `backend/data/return_policy.txt`. All business rules (return window, ownership checks, idempotency, and the ₹5,000 escalation threshold) live strictly in backend services rather than inside the prompt or frontend.
-
-```
-Customer / Staff Browser
-      │
-      ▼
-   React Frontend (port 3000)
-      │  REST API calls (Bearer JWT)
-      ▼
-   FastAPI Backend (port 8000)
-      │
-      ├── Auth & Users (/auth, /users)
-      ├── Orders, Tickets, Messages, Refunds, Escalations
-      ├── Audit Logger Middleware (structured JSON logs)
-      ├── AI Agent (Multi-turn + Prompt-Injection Guard)
-      │     ├── get_order_details
-      │     ├── search_return_policy  ◄── return_policy.txt
-      │     ├── process_refund
-      │     └── escalate_to_human
-      │
-      └── PostgreSQL Database (port 5432)
-```
-
-## Environment Variables
-
-See `.env.example` for all required variables. Never commit actual credentials.
+> Requires a local PostgreSQL database named `ecommerce_support_test`.
 
 ## AI Provider Note
 
-The agent currently uses a rule-based mock LLM for local testing (no API key required). To connect a real LLM:
-
+The agent uses a rule-based mock LLM — no API key needed. To swap in a real LLM:
 1. Install `google-generativeai` or `openai`
-2. Replace the `mock_llm_response()` function in `backend/app/agent/agent_core.py` with actual API calls
+2. Replace `mock_llm_response()` in `backend/app/agent/agent_core.py`
 3. Add your API key to `.env`
-
-The mock implementation is intentionally designed so the swap is a single function replacement.
