@@ -7,9 +7,12 @@ import ErrorMessage from '../components/ErrorMessage'
 import ChatBubble from '../components/ChatBubble'
 import { useAuth } from '../contexts/AuthContext'
 
-const statusColors: Record<string, string> = {
-  open: '#7c3aed', in_progress: '#2563eb', pending_review: '#d97706',
-  resolved: '#16a34a', closed: '#6b7280'
+const statusStyles: Record<string, { color: string; bg: string }> = {
+  open:           { color: '#6d28d9', bg: '#f3e8ff' },
+  in_progress:    { color: '#1d4ed8', bg: '#dbeafe' },
+  pending_review: { color: '#b45309', bg: '#fef3c7' },
+  resolved:       { color: '#15803d', bg: '#dcfce7' },
+  closed:         { color: '#475569', bg: '#f1f5f9' },
 }
 
 export default function TicketDetailPage() {
@@ -83,34 +86,34 @@ export default function TicketDetailPage() {
     }
   }
 
-  if (loading) return <LoadingSpinner />
+  if (loading) return <LoadingSpinner text="Loading ticket details..." />
   if (!ticket) {
     return (
       <div className="page-wrap">
         <ErrorMessage message={error || 'Ticket not found.'} />
-        <Link to={isStaff ? '/staff' : '/tickets'} style={{ color: '#7c83fd', fontSize: 14 }}>← Back</Link>
+        <Link to={isStaff ? '/staff' : '/tickets'} style={{ fontSize: 14, fontWeight: 600 }}>← Back</Link>
       </div>
     )
   }
 
-  const color = statusColors[ticket.status] || '#888'
+  const st = statusStyles[ticket.status] || { color: '#475569', bg: '#f1f5f9' }
 
   return (
-    <div className="page-wrap" style={{ maxWidth: 860 }}>
-      <Link to={isStaff ? '/staff' : '/tickets'} style={{ color: '#7c83fd', fontSize: 14, textDecoration: 'none' }}>
+    <div className="page-wrap" style={{ maxWidth: 900 }}>
+      <Link to={isStaff ? '/staff' : '/tickets'} style={{ fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>
         ← Back to {isStaff ? 'Staff Panel' : 'Tickets'}
       </Link>
 
       <div style={{ margin: '14px 0 20px' }}>
-        <h1 style={{ fontSize: 21, fontWeight: 700, marginBottom: 8 }}>#{ticket.id} — {ticket.subject}</h1>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 13, color: '#666', alignItems: 'center' }}>
-          <span>Category: <strong>{ticket.category}</strong></span>
+        <h1 className="page-title" style={{ marginBottom: 8 }}>#{ticket.id} — {ticket.subject}</h1>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', fontSize: 13, color: '#64748b', alignItems: 'center' }}>
+          <span>Category: <strong style={{ color: '#0f172a', textTransform: 'capitalize' }}>{ticket.category}</strong></span>
           <span>·</span>
-          <span style={{ background: color + '22', color, padding: '2px 10px', borderRadius: 20, fontWeight: 600 }}>
-            {ticket.status.replace('_', ' ')}
+          <span style={{ background: st.bg, color: st.color, padding: '2px 11px', borderRadius: 20, fontWeight: 600, textTransform: 'capitalize' }}>
+            {ticket.status.replace(/_/g, ' ')}
           </span>
           <span>·</span>
-          <span>Priority: <strong>{ticket.priority}</strong></span>
+          <span>Priority: <strong style={{ color: '#0f172a', textTransform: 'capitalize' }}>{ticket.priority}</strong></span>
           <span>·</span>
           <span>Customer #{ticket.customer_id}</span>
         </div>
@@ -118,17 +121,17 @@ export default function TicketDetailPage() {
 
       {error && <ErrorMessage message={error} />}
 
-      {/* Staff controls for status & priority */}
       {isStaff && (
         <div className="card" style={{ marginBottom: 16, display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center', background: '#f8fafc' }}>
-          <div style={{ fontWeight: 600, fontSize: 13 }}>Staff Controls:</div>
-          <label style={{ fontSize: 13 }}>
+          <div style={{ fontWeight: 700, fontSize: 13 }}>Staff Controls:</div>
+          <label style={{ fontSize: 13, fontWeight: 500 }}>
             Status:{' '}
             <select
+              className="select"
+              style={{ width: 'auto', display: 'inline-block', padding: '6px 10px', fontSize: 13 }}
               disabled={updating}
               value={ticket.status}
               onChange={e => updateTicket(e.target.value, ticket.priority)}
-              style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', fontSize: 13 }}
             >
               <option value="open">Open</option>
               <option value="in_progress">In Progress</option>
@@ -137,13 +140,14 @@ export default function TicketDetailPage() {
               <option value="closed">Closed</option>
             </select>
           </label>
-          <label style={{ fontSize: 13 }}>
+          <label style={{ fontSize: 13, fontWeight: 500 }}>
             Priority:{' '}
             <select
+              className="select"
+              style={{ width: 'auto', display: 'inline-block', padding: '6px 10px', fontSize: 13 }}
               disabled={updating}
               value={ticket.priority}
               onChange={e => updateTicket(ticket.status, e.target.value)}
-              style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', fontSize: 13 }}
             >
               <option value="low">Low</option>
               <option value="medium">Medium</option>
@@ -156,17 +160,16 @@ export default function TicketDetailPage() {
 
       {ticket.description && (
         <div className="card" style={{ marginBottom: 16 }}>
-          <p style={{ fontSize: 12, color: '#888', textTransform: 'uppercase', marginBottom: 6 }}>Issue Description</p>
-          <p style={{ fontSize: 14 }}>{ticket.description}</p>
+          <p className="stat-label" style={{ marginBottom: 6 }}>Issue Description</p>
+          <p style={{ fontSize: 14, color: '#334155' }}>{ticket.description}</p>
         </div>
       )}
 
-      {/* Order & Refund Context */}
       {(order || refunds.length > 0) && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16, marginBottom: 16 }}>
           {order && (
             <div className="card">
-              <p style={{ fontSize: 12, color: '#888', textTransform: 'uppercase', marginBottom: 8 }}>Linked Order #{order.id}</p>
+              <p className="stat-label" style={{ marginBottom: 8 }}>Linked Order #{order.id}</p>
               <p style={{ fontSize: 14 }}><strong>Status:</strong> {order.status}</p>
               <p style={{ fontSize: 14 }}><strong>Category:</strong> {order.item_category || '—'}</p>
               <p style={{ fontSize: 14 }}><strong>Amount:</strong> ₹{order.total_amount.toFixed(2)}</p>
@@ -176,22 +179,16 @@ export default function TicketDetailPage() {
 
           {refunds.map(r => (
             <div key={r.id} className="card">
-              <p style={{ fontSize: 12, color: '#888', textTransform: 'uppercase', marginBottom: 8 }}>Refund #{r.id}</p>
+              <p className="stat-label" style={{ marginBottom: 8 }}>Refund #{r.id}</p>
               <p style={{ fontSize: 14 }}><strong>Amount:</strong> ₹{r.amount.toFixed(2)}</p>
-              <p style={{ fontSize: 14 }}><strong>Status:</strong> {r.status}</p>
-              {r.reason && <p style={{ fontSize: 13, color: '#666', marginTop: 4 }}>{r.reason}</p>}
+              <p style={{ fontSize: 14 }}><strong>Status:</strong> <span style={{ textTransform: 'capitalize', fontWeight: 600 }}>{r.status}</span></p>
+              {r.reason && <p style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>{r.reason}</p>}
               {isStaff && (r.status === 'pending' || r.status === 'escalated') && (
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                  <button
-                    onClick={() => handleRefundDecision(r.id, 'approved')}
-                    style={{ padding: '6px 14px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
-                  >
+                  <button onClick={() => handleRefundDecision(r.id, 'approved')} className="btn btn-success btn-sm">
                     Approve Refund
                   </button>
-                  <button
-                    onClick={() => handleRefundDecision(r.id, 'rejected')}
-                    style={{ padding: '6px 14px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
-                  >
+                  <button onClick={() => handleRefundDecision(r.id, 'rejected')} className="btn btn-danger btn-sm">
                     Reject
                   </button>
                 </div>
@@ -201,20 +198,19 @@ export default function TicketDetailPage() {
         </div>
       )}
 
-      {/* Conversation thread */}
       <div className="card">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <p style={{ fontWeight: 600, fontSize: 15 }}>💬 Conversation History</p>
+          <p style={{ fontWeight: 700, fontSize: 15 }}>Conversation History</p>
           {!isStaff && (
-            <Link to={`/tickets/${id}/chat`} style={{ color: '#7c83fd', fontSize: 13, textDecoration: 'none' }}>
-              Open full AI chat →
+            <Link to={`/tickets/${id}/chat`} className="btn btn-primary btn-sm">
+              Open Full Support Chat →
             </Link>
           )}
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', maxHeight: 380, overflowY: 'auto', marginBottom: 16, padding: 4 }}>
           {messages.length === 0 && (
-            <p style={{ color: '#aaa', textAlign: 'center', padding: 24 }}>
+            <p style={{ color: '#94a3b8', textAlign: 'center', padding: 24 }}>
               No messages yet. Start by typing below.
             </p>
           )}
@@ -225,17 +221,13 @@ export default function TicketDetailPage() {
 
         <div style={{ display: 'flex', gap: 10 }}>
           <input
-            style={{ flex: 1, padding: '10px 14px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14 }}
+            className="input"
             value={msg}
             onChange={e => setMsg(e.target.value)}
-            placeholder={isStaff ? 'Write a support staff reply...' : 'Message the AI support agent...'}
+            placeholder={isStaff ? 'Write a support staff reply...' : 'Message the support assistant...'}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
           />
-          <button
-            onClick={sendMessage}
-            disabled={sending || !msg.trim()}
-            style={{ padding: '10px 20px', background: '#7c83fd', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
-          >
+          <button onClick={sendMessage} disabled={sending || !msg.trim()} className="btn btn-primary">
             {sending ? '...' : 'Send'}
           </button>
         </div>

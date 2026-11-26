@@ -8,7 +8,7 @@ def test_eligible_refund_created(client, customer_token, delivered_order):
         "reason": "Item is defective"
     }, headers={"Authorization": f"Bearer {customer_token}"})
     assert resp.status_code == 200
-    assert resp.json()["status"] in ["pending", "escalated"]
+    assert resp.json()["status"] in ["approved", "escalated"]
 
 
 def test_expired_return_window_rejected(client, customer_token, expired_order):
@@ -21,16 +21,15 @@ def test_expired_return_window_rejected(client, customer_token, expired_order):
     assert "expired" in resp.json()["detail"].lower()
 
 
-def test_refund_below_threshold_stays_pending(client, customer_token, delivered_order):
-    # 2500 is below the 5000 threshold, so it should stay as pending (not escalated)
+def test_refund_below_threshold_auto_approved(client, customer_token, delivered_order):
+    # 2500 is within the 5000 threshold, so it should be automatically approved
     resp = client.post("/refunds/", json={
         "order_id": delivered_order.id,
         "amount": 2500.0,
         "reason": "Not as described"
     }, headers={"Authorization": f"Bearer {customer_token}"})
-    # may fail if refund already created from previous test — that's fine
     if resp.status_code == 200:
-        assert resp.json()["status"] == "pending"
+        assert resp.json()["status"] == "approved"
 
 
 def test_duplicate_refund_prevented(client, customer_token, delivered_order):

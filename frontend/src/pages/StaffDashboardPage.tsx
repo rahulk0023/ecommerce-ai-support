@@ -11,11 +11,18 @@ interface ContextBundle {
   messages: Message[]
 }
 
-const badgeColors: Record<string, string> = {
-  open: '#7c3aed', in_progress: '#2563eb', pending_review: '#d97706',
-  resolved: '#16a34a', closed: '#6b7280',
-  pending: '#d97706', escalated: '#7c3aed', approved: '#16a34a', rejected: '#dc2626',
-  needs_info: '#d97706', processed: '#2563eb'
+const badgeStyles: Record<string, { color: string; bg: string }> = {
+  open:           { color: '#6d28d9', bg: '#f3e8ff' },
+  in_progress:    { color: '#1d4ed8', bg: '#dbeafe' },
+  pending_review: { color: '#b45309', bg: '#fef3c7' },
+  resolved:       { color: '#15803d', bg: '#dcfce7' },
+  closed:         { color: '#475569', bg: '#f1f5f9' },
+  pending:        { color: '#b45309', bg: '#fef3c7' },
+  escalated:      { color: '#6d28d9', bg: '#f3e8ff' },
+  approved:       { color: '#15803d', bg: '#dcfce7' },
+  rejected:       { color: '#b91c1c', bg: '#fee2e2' },
+  needs_info:     { color: '#b45309', bg: '#fef3c7' },
+  processed:      { color: '#0d9488', bg: '#ccfbf1' },
 }
 
 export default function StaffDashboardPage() {
@@ -26,12 +33,10 @@ export default function StaffDashboardPage() {
   const [error, setError] = useState('')
   const [activeTab, setActiveTab] = useState<'escalations' | 'tickets' | 'refunds'>('escalations')
 
-  // escalation notes + inline context viewer
   const [notes, setNotes] = useState<Record<number, string>>({})
   const [contexts, setContexts] = useState<Record<number, ContextBundle>>({})
   const [openContextId, setOpenContextId] = useState<number | null>(null)
 
-  // ticket search & filters
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [priorityFilter, setPriorityFilter] = useState('')
@@ -133,40 +138,39 @@ export default function StaffDashboardPage() {
   })
 
   const tabStyle = (key: 'escalations' | 'tickets' | 'refunds'): React.CSSProperties => ({
-    padding: '10px 18px', border: 'none', background: 'none', cursor: 'pointer',
+    padding: '11px 18px', border: 'none', background: 'none', cursor: 'pointer',
     fontSize: 14, fontWeight: activeTab === key ? 700 : 500,
-    color: activeTab === key ? '#7c83fd' : '#666',
-    borderBottom: activeTab === key ? '2px solid #7c83fd' : '2px solid transparent',
+    color: activeTab === key ? '#4f46e5' : '#64748b',
+    borderBottom: activeTab === key ? '2px solid #4f46e5' : '2px solid transparent',
   })
 
   return (
     <div className="page-wrap">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
+      <div className="page-header">
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 700 }}>Internal Support Dashboard</h1>
-          <p style={{ color: '#666', fontSize: 14 }}>Review escalations, inspect order & chat context, manage tickets, and approve refunds.</p>
+          <h1 className="page-title">Internal Support Dashboard</h1>
+          <p className="page-subtitle">Review escalations, inspect order &amp; chat context, manage tickets, and approve refunds.</p>
         </div>
       </div>
 
       {error && <ErrorMessage message={error} />}
 
-      {/* quick summary */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 14, marginBottom: 24 }}>
-        <div className="card">
-          <div style={{ fontSize: 12, color: '#888', textTransform: 'uppercase' }}>Pending Escalations</div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: '#dc2626' }}>{pendingEscalations.length}</div>
+      <div className="stat-grid">
+        <div className="stat-card" style={{ borderTopColor: '#dc2626' }}>
+          <div className="stat-label">Pending Escalations</div>
+          <div className="stat-value" style={{ color: '#b91c1c' }}>{pendingEscalations.length}</div>
         </div>
-        <div className="card">
-          <div style={{ fontSize: 12, color: '#888', textTransform: 'uppercase' }}>Total Tickets</div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: '#1a1a2e' }}>{tickets.length}</div>
+        <div className="stat-card" style={{ borderTopColor: '#4f46e5' }}>
+          <div className="stat-label">Total Tickets</div>
+          <div className="stat-value">{tickets.length}</div>
         </div>
-        <div className="card">
-          <div style={{ fontSize: 12, color: '#888', textTransform: 'uppercase' }}>Pending Refunds</div>
-          <div style={{ fontSize: 28, fontWeight: 700, color: '#d97706' }}>{pendingRefunds.length}</div>
+        <div className="stat-card" style={{ borderTopColor: '#d97706' }}>
+          <div className="stat-label">Pending / Escalated Refunds</div>
+          <div className="stat-value" style={{ color: '#b45309' }}>{pendingRefunds.length}</div>
         </div>
       </div>
 
-      <div style={{ display: 'flex', borderBottom: '2px solid #e5e7eb', marginBottom: 22, overflowX: 'auto' }}>
+      <div style={{ display: 'flex', borderBottom: '2px solid #e2e8f0', marginBottom: 22, overflowX: 'auto' }}>
         <button style={tabStyle('escalations')} onClick={() => setActiveTab('escalations')}>
           Escalations ({pendingEscalations.length} pending)
         </button>
@@ -178,85 +182,80 @@ export default function StaffDashboardPage() {
         </button>
       </div>
 
-      {/* TAB 1: ESCALATIONS */}
       {activeTab === 'escalations' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {escalations.length === 0 && (
-            <div className="card" style={{ textAlign: 'center', color: '#888', padding: 48 }}>
+            <div className="card" style={{ textAlign: 'center', color: '#64748b', padding: 48 }}>
               No escalations yet. High-value refunds (&gt; ₹5,000) or manual escalations appear here.
             </div>
           )}
 
           {escalations.map(esc => {
             const ctx = contexts[esc.id]
-            const decColor = badgeColors[esc.decision] || '#666'
+            const st = badgeStyles[esc.decision] || { color: '#475569', bg: '#f1f5f9' }
             return (
               <div key={esc.id} className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 10 }}>
                   <div>
-                    <span style={{ fontWeight: 700 }}>Escalation #{esc.id}</span>
+                    <span style={{ fontWeight: 700, fontSize: 15 }}>Escalation #{esc.id}</span>
                     {' — '}
-                    <Link to={`/tickets/${esc.ticket_id}`} style={{ color: '#7c83fd', fontSize: 14, fontWeight: 500 }}>
+                    <Link to={`/tickets/${esc.ticket_id}`} style={{ fontSize: 14, fontWeight: 600, textDecoration: 'none' }}>
                       Ticket #{esc.ticket_id}
                     </Link>
                   </div>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <span style={{
-                      background: esc.priority === 'high' ? '#fef2f2' : '#fffbeb',
-                      color: esc.priority === 'high' ? '#dc2626' : '#d97706',
-                      padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600
+                      background: esc.priority === 'high' ? '#fee2e2' : '#fef3c7',
+                      color: esc.priority === 'high' ? '#b91c1c' : '#b45309',
+                      padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, textTransform: 'capitalize'
                     }}>
                       {esc.priority} priority
                     </span>
                     <span style={{
-                      background: decColor + '22', color: decColor,
-                      padding: '2px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600
+                      background: st.bg, color: st.color,
+                      padding: '3px 10px', borderRadius: 20, fontSize: 12, fontWeight: 600, textTransform: 'capitalize'
                     }}>
                       {esc.decision.replace('_', ' ')}
                     </span>
                   </div>
                 </div>
 
-                <p style={{ color: '#333', fontSize: 14, marginBottom: 10 }}>{esc.summary}</p>
+                <p style={{ color: '#334155', fontSize: 14, marginBottom: 10 }}>{esc.summary}</p>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
-                  <span style={{ fontSize: 12, color: '#888' }}>
+                  <span style={{ fontSize: 12.5, color: '#64748b' }}>
                     Created: {new Date(esc.created_at).toLocaleString()}
                     {esc.internal_note && ` · Note: "${esc.internal_note}"`}
                   </span>
                   <button
                     onClick={() => toggleInspectContext(esc)}
-                    style={{
-                      padding: '5px 12px', background: '#f3f4f6', border: '1px solid #d1d5db',
-                      borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 600
-                    }}
+                    className="btn btn-secondary btn-sm"
                   >
                     {openContextId === esc.id ? 'Hide Context' : 'Inspect Order & Chat Context'}
                   </button>
                 </div>
 
-                {/* inline order & conversation context */}
                 {openContextId === esc.id && (
-                  <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 14, marginBottom: 14 }}>
                     {!ctx ? (
-                      <p style={{ fontSize: 13, color: '#888' }}>Loading context...</p>
+                      <p style={{ fontSize: 13, color: '#64748b' }}>Loading context...</p>
                     ) : (
                       <>
                         {ctx.order ? (
-                          <div style={{ marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid #e5e7eb', fontSize: 13 }}>
+                          <div style={{ marginBottom: 10, paddingBottom: 10, borderBottom: '1px solid #e2e8f0', fontSize: 13 }}>
                             <strong>Order #{ctx.order.id}:</strong> {ctx.order.item_category} · ₹{ctx.order.total_amount.toFixed(2)} · Status: <em>{ctx.order.status}</em> · Delivered: {ctx.order.delivery_date || 'N/A'}
                           </div>
                         ) : (
-                          <div style={{ marginBottom: 10, fontSize: 13, color: '#888' }}>No order attached to Ticket #{esc.ticket_id}.</div>
+                          <div style={{ marginBottom: 10, fontSize: 13, color: '#64748b' }}>No order attached to Ticket #{esc.ticket_id}.</div>
                         )}
-                        <div style={{ fontSize: 12, fontWeight: 600, color: '#555', marginBottom: 6 }}>Recent Messages:</div>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: '#475569', marginBottom: 6 }}>Recent Messages:</div>
                         {ctx.messages.length === 0 ? (
-                          <p style={{ fontSize: 12, color: '#888' }}>No messages on this ticket.</p>
+                          <p style={{ fontSize: 12, color: '#64748b' }}>No messages on this ticket.</p>
                         ) : (
                           <div style={{ maxHeight: 160, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6 }}>
                             {ctx.messages.slice(-6).map(m => (
-                              <div key={m.id} style={{ fontSize: 12, background: '#fff', padding: '6px 10px', borderRadius: 6, border: '1px solid #eee' }}>
-                                <strong>{m.sender_type}:</strong> {m.content}
+                              <div key={m.id} style={{ fontSize: 12.5, background: '#fff', padding: '7px 10px', borderRadius: 8, border: '1px solid #e2e8f0' }}>
+                                <strong style={{ textTransform: 'capitalize' }}>{m.sender_type}:</strong> {m.content}
                               </div>
                             ))}
                           </div>
@@ -269,33 +268,22 @@ export default function StaffDashboardPage() {
                 {esc.decision === 'pending' && (
                   <div>
                     <textarea
+                      className="textarea"
                       value={notes[esc.id] || ''}
                       onChange={e => setNotes(prev => ({ ...prev, [esc.id]: e.target.value }))}
                       placeholder="Add internal review note..."
-                      style={{
-                        width: '100%', padding: 10, border: '1px solid #d1d5db',
-                        borderRadius: 8, fontSize: 13, minHeight: 64,
-                        marginBottom: 10, resize: 'vertical'
-                      }}
+                      rows={2}
+                      style={{ marginBottom: 10 }}
                     />
                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                      <button
-                        onClick={() => handleReviewEscalation(esc.id, 'approved')}
-                        style={{ padding: '8px 18px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}
-                      >
-                        ✓ Approve
+                      <button onClick={() => handleReviewEscalation(esc.id, 'approved')} className="btn btn-success btn-sm">
+                        Approve
                       </button>
-                      <button
-                        onClick={() => handleReviewEscalation(esc.id, 'rejected')}
-                        style={{ padding: '8px 18px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}
-                      >
-                        ✗ Reject
+                      <button onClick={() => handleReviewEscalation(esc.id, 'rejected')} className="btn btn-danger btn-sm">
+                        Reject
                       </button>
-                      <button
-                        onClick={() => handleReviewEscalation(esc.id, 'needs_info')}
-                        style={{ padding: '8px 18px', background: '#d97706', color: '#fff', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13 }}
-                      >
-                        ? Request Info
+                      <button onClick={() => handleReviewEscalation(esc.id, 'needs_info')} className="btn btn-warning btn-sm">
+                        Request Info
                       </button>
                     </div>
                   </div>
@@ -306,20 +294,21 @@ export default function StaffDashboardPage() {
         </div>
       )}
 
-      {/* TAB 2: ALL TICKETS */}
       {activeTab === 'tickets' && (
         <div>
           <div className="card" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
             <input
+              className="input"
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Search by ticket #, subject, or description..."
-              style={{ flex: '1 1 220px', padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14 }}
+              style={{ flex: '1 1 220px' }}
             />
             <select
+              className="select"
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
-              style={{ padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, background: '#fff' }}
+              style={{ width: 'auto', minWidth: 150 }}
             >
               <option value="">All Statuses</option>
               <option value="open">Open</option>
@@ -329,9 +318,10 @@ export default function StaffDashboardPage() {
               <option value="closed">Closed</option>
             </select>
             <select
+              className="select"
               value={priorityFilter}
               onChange={e => setPriorityFilter(e.target.value)}
-              style={{ padding: '9px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 13, background: '#fff' }}
+              style={{ width: 'auto', minWidth: 140 }}
             >
               <option value="">All Priorities</option>
               <option value="low">Low</option>
@@ -342,7 +332,7 @@ export default function StaffDashboardPage() {
           </div>
 
           {filteredTickets.length === 0 ? (
-            <div className="card" style={{ textAlign: 'center', color: '#888', padding: 40 }}>
+            <div className="card" style={{ textAlign: 'center', color: '#64748b', padding: 40 }}>
               No tickets match your filters.
             </div>
           ) : (
@@ -350,17 +340,18 @@ export default function StaffDashboardPage() {
               {filteredTickets.map(t => (
                 <div key={t.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                   <div style={{ flex: '1 1 260px' }}>
-                    <div style={{ fontWeight: 600, fontSize: 15 }}>#{t.id} — {t.subject}</div>
-                    <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>
+                    <div style={{ fontWeight: 700, fontSize: 15 }}>#{t.id} — {t.subject}</div>
+                    <div style={{ fontSize: 13, color: '#64748b', marginTop: 4, textTransform: 'capitalize' }}>
                       {t.category} · Customer #{t.customer_id}
                       {t.order_id ? ` · Order #${t.order_id}` : ''} · {new Date(t.created_at).toLocaleDateString()}
                     </div>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                     <select
+                      className="select"
                       value={t.status}
                       onChange={e => handleTicketUpdate(t.id, e.target.value, t.priority)}
-                      style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 12, background: '#fff' }}
+                      style={{ width: 'auto', padding: '6px 10px', fontSize: 12.5 }}
                     >
                       <option value="open">Open</option>
                       <option value="in_progress">In Progress</option>
@@ -369,16 +360,17 @@ export default function StaffDashboardPage() {
                       <option value="closed">Closed</option>
                     </select>
                     <select
+                      className="select"
                       value={t.priority}
                       onChange={e => handleTicketUpdate(t.id, t.status, e.target.value)}
-                      style={{ padding: '5px 8px', borderRadius: 6, border: '1px solid #d1d5db', fontSize: 12, background: '#fff' }}
+                      style={{ width: 'auto', padding: '6px 10px', fontSize: 12.5 }}
                     >
                       <option value="low">Low</option>
                       <option value="medium">Medium</option>
                       <option value="high">High</option>
                       <option value="urgent">Urgent</option>
                     </select>
-                    <Link to={`/tickets/${t.id}`} style={{ color: '#7c83fd', fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
+                    <Link to={`/tickets/${t.id}`} style={{ fontSize: 13, fontWeight: 600, textDecoration: 'none' }}>
                       Inspect →
                     </Link>
                   </div>
@@ -389,48 +381,41 @@ export default function StaffDashboardPage() {
         </div>
       )}
 
-      {/* TAB 3: REFUND REQUESTS */}
       {activeTab === 'refunds' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {refunds.length === 0 && (
-            <div className="card" style={{ textAlign: 'center', color: '#888', padding: 48 }}>
+            <div className="card" style={{ textAlign: 'center', color: '#64748b', padding: 48 }}>
               No refund requests yet.
             </div>
           )}
           {refunds.map(r => {
-            const c = badgeColors[r.status] || '#666'
+            const st = badgeStyles[r.status] || { color: '#475569', bg: '#f1f5f9' }
             return (
               <div key={r.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 14 }}>
                 <div>
-                  <div style={{ fontWeight: 600, fontSize: 15 }}>
+                  <div style={{ fontWeight: 700, fontSize: 15 }}>
                     Refund #{r.id} — Order #{r.order_id}
                     {r.ticket_id && (
-                      <> · <Link to={`/tickets/${r.ticket_id}`} style={{ color: '#7c83fd', fontSize: 13 }}>Ticket #{r.ticket_id}</Link></>
+                      <> · <Link to={`/tickets/${r.ticket_id}`} style={{ fontSize: 13, textDecoration: 'none' }}>Ticket #{r.ticket_id}</Link></>
                     )}
                   </div>
                   <div style={{ fontSize: 14, marginTop: 4 }}>
                     Amount: <strong>₹{r.amount.toFixed(2)}</strong> · Customer #{r.requested_by}
                   </div>
-                  {r.reason && <div style={{ fontSize: 13, color: '#666', marginTop: 4 }}>Reason: {r.reason}</div>}
+                  {r.reason && <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>Reason: {r.reason}</div>}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                  <span style={{ background: c + '22', color: c, padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 600 }}>
+                  <span style={{ background: st.bg, color: st.color, padding: '3px 12px', borderRadius: 20, fontSize: 12, fontWeight: 700, textTransform: 'capitalize' }}>
                     {r.status}
                   </span>
                   {(r.status === 'pending' || r.status === 'escalated') && (
                     <>
-                      <button
-                        onClick={() => handleReviewRefund(r.id, 'approved')}
-                        style={{ padding: '7px 14px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
-                      >
-                        ✓ Approve
+                      <button onClick={() => handleReviewRefund(r.id, 'approved')} className="btn btn-success btn-sm">
+                        Approve
                       </button>
-                      <button
-                        onClick={() => handleReviewRefund(r.id, 'rejected')}
-                        style={{ padding: '7px 14px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600 }}
-                      >
-                        ✗ Reject
+                      <button onClick={() => handleReviewRefund(r.id, 'rejected')} className="btn btn-danger btn-sm">
+                        Reject
                       </button>
                     </>
                   )}

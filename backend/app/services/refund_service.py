@@ -62,11 +62,12 @@ def create_refund_record(
             log_audit_event("refund_duplicate_prevented", refund_id=existing.id, order_id=order_id)
             return existing
 
-    # amounts above the threshold need a human to look at them
+    # amounts above the threshold need a human to look at them;
+    # eligible refunds within the threshold are auto-approved
     if amount > settings.max_auto_refund_amount:
         status = RefundStatus.escalated
     else:
-        status = RefundStatus.pending
+        status = RefundStatus.approved
 
     refund = Refund(
         order_id=order_id,

@@ -2,8 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.database import get_db
-from app.models.refund import Refund
+from app.models.refund import Refund, RefundStatus
 from app.models.order import Order
+from app.models.message import Message, SenderType
 from app.models.user import User, UserRole
 from app.schemas.refund import RefundCreate, RefundOut, RefundReview
 from app.services.auth_service import get_current_user, require_staff
@@ -52,9 +53,34 @@ def request_refund(
         create_escalation(
             db,
             payload.ticket_id,
-            summary=f"High-value refund request: ₹{payload.amount} for order #{payload.order_id}. Reason: {payload.reason}",
+            summary=f"High-value refund request: ₹{payload.amount:.2f} for order #{payload.order_id}. Reason: {payload.reason}",
             priority="high"
         )
+
+    # persist a system status update in the ticket conversation when submitted from a ticket/chat
+    if payload.ticket_id is not None:
+        if refund.status == RefundStatus.escalated:
+            note = (
+                f"Refund #{refund.id} for Order #{refund.order_id} (₹{refund.amount:.2f}) "
+                f"exceeds ₹{settings.max_auto_refund_amount:,.0f} and has been escalated to human support for review."
+            )
+        elif refund.status == RefundStatus.approved:
+            note = (
+                f"Refund #{refund.id} for Order #{refund.order_id} (₹{refund.amount:.2f}) "
+                f"has been automatically approved (within ₹{settings.max_auto_refund_amount:,.0f} limit)."
+            )
+        else:
+            note = (
+                f"Refund #{refund.id} for Order #{refund.order_id} (₹{refund.amount:.2f}) "
+                f"has been submitted (status: {refund.status.value})."
+            )
+        db.add(Message(
+            ticket_id=payload.ticket_id,
+            sender_type=SenderType.system,
+            sender_id=None,
+            content=note
+        ))
+        db.commit()
 
     return refund
 

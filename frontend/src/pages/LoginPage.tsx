@@ -27,36 +27,66 @@ export default function LoginPage() {
     }
   }
 
-  const s: Record<string, React.CSSProperties> = {
-    page: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f4f5f7', padding: 16 },
-    card: { background: '#fff', borderRadius: 12, padding: '36px 36px', width: '100%', maxWidth: 400, boxShadow: '0 4px 24px rgba(0,0,0,0.09)' },
-    title: { fontSize: 24, fontWeight: 700, marginBottom: 8, color: '#1a1a2e' },
-    sub: { color: '#888', marginBottom: 24, fontSize: 14 },
-    label: { display: 'block', marginBottom: 6, fontWeight: 500, fontSize: 14 },
-    input: { width: '100%', padding: '10px 12px', border: '1px solid #ddd', borderRadius: 8, fontSize: 14, marginBottom: 16 },
-    btn: { width: '100%', padding: '12px', background: '#7c83fd', color: '#fff', border: 'none', borderRadius: 8, fontSize: 16, fontWeight: 600, cursor: 'pointer' },
-  }
-
   return (
-    <div style={s.page}>
-      <div style={s.card}>
-        <h1 style={s.title}>Welcome back</h1>
-        <p style={s.sub}>Sign in to your support account</p>
+    <div style={{
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 55%, #312e81 100%)',
+      padding: 16
+    }}>
+      <div className="card" style={{ width: '100%', maxWidth: 420, padding: '36px 34px', boxShadow: 'var(--shadow-lg)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 22 }}>
+          <span style={{
+            width: 34, height: 34, borderRadius: 9,
+            background: 'linear-gradient(135deg, #4f46e5 0%, #0d9488 100%)',
+            display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 14, fontWeight: 800, color: '#fff',
+            boxShadow: '0 4px 10px rgba(79, 70, 229, 0.3)'
+          }}>
+            SC
+          </span>
+          <span style={{ fontWeight: 800, fontSize: 19, color: '#0f172a' }}>
+            ShopCare <span style={{ color: '#4f46e5' }}>Support</span>
+          </span>
+        </div>
+
+        <h1 style={{ fontSize: 23, fontWeight: 800, marginBottom: 6, color: '#0f172a' }}>Welcome back</h1>
+        <p style={{ color: '#64748b', marginBottom: 22, fontSize: 14 }}>Sign in to manage orders, support tickets, and refunds.</p>
 
         {error && <ErrorMessage message={error} />}
 
         <form onSubmit={handleSubmit}>
-          <label style={s.label}>Email</label>
-          <input style={s.input} type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" required />
-          <label style={s.label}>Password</label>
-          <input style={s.input} type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required />
-          <button style={s.btn} type="submit" disabled={loading}>
+          <div style={{ marginBottom: 16 }}>
+            <label className="field-label">Email</label>
+            <input
+              className="input"
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+            />
+          </div>
+          <div style={{ marginBottom: 20 }}>
+            <label className="field-label">Password</label>
+            <input
+              className="input"
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              required
+            />
+          </div>
+          <button className="btn btn-primary" style={{ width: '100%', padding: '12px' }} type="submit" disabled={loading}>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: 20, fontSize: 14, color: '#888' }}>
-          Don't have an account? <Link to="/register" style={{ color: '#7c83fd' }}>Register</Link>
+        <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13.5, color: '#64748b' }}>
+          Don&apos;t have an account? <Link to="/register" style={{ fontWeight: 600, textDecoration: 'none' }}>Create account</Link>
         </p>
       </div>
     </div>

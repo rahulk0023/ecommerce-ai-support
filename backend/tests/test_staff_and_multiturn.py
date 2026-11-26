@@ -52,12 +52,20 @@ def test_staff_can_filter_and_search_tickets(client, customer_token, staff_token
     assert "Late parcel" not in subjects
 
 
-def test_staff_can_approve_refund_directly(client, customer_token, staff_token, delivered_order):
+def test_staff_can_approve_refund_directly(client, customer_token, staff_token):
+    high_order = client.post("/orders/", json={
+        "item_category": "electronics",
+        "item_details": "Monitor",
+        "total_amount": 7500.0,
+        "status": "delivered"
+    }, headers={"Authorization": f"Bearer {customer_token}"}).json()
+
     rf = client.post("/refunds/", json={
-        "order_id": delivered_order.id,
-        "amount": 1500.0,
+        "order_id": high_order["id"],
+        "amount": 7500.0,
         "reason": "Defective unit"
     }, headers={"Authorization": f"Bearer {customer_token}"}).json()
+    assert rf["status"] == "escalated"
 
     # customer cannot approve their own refund
     forbidden = client.post(

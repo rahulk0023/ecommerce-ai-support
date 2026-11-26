@@ -4,9 +4,12 @@ import api from '../api/client'
 import type { Ticket } from '../types'
 import LoadingSpinner from '../components/LoadingSpinner'
 
-const statusColors: Record<string, string> = {
-  open: '#7c3aed', in_progress: '#2563eb', pending_review: '#d97706',
-  resolved: '#16a34a', closed: '#6b7280'
+const statusStyles: Record<string, { color: string; bg: string }> = {
+  open:           { color: '#6d28d9', bg: '#f3e8ff' },
+  in_progress:    { color: '#1d4ed8', bg: '#dbeafe' },
+  pending_review: { color: '#b45309', bg: '#fef3c7' },
+  resolved:       { color: '#15803d', bg: '#dcfce7' },
+  closed:         { color: '#475569', bg: '#f1f5f9' },
 }
 
 export default function TicketsPage() {
@@ -22,60 +25,70 @@ export default function TicketsPage() {
 
   const filtered = filter ? tickets.filter(t => t.status === filter) : tickets
 
-  if (loading) return <LoadingSpinner />
+  if (loading) return <LoadingSpinner text="Loading tickets..." />
 
   return (
-    <div style={{ maxWidth: 900, margin: '0 auto', padding: '32px 24px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700 }}>Support Tickets</h1>
-        <Link to="/tickets/new" style={{ padding: '10px 20px', background: '#7c83fd', color: '#fff', borderRadius: 8, textDecoration: 'none', fontSize: 14, fontWeight: 600 }}>
+    <div className="page-wrap" style={{ maxWidth: 940 }}>
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Support Tickets</h1>
+          <p className="page-subtitle">Chat with our support assistant or track ongoing support requests.</p>
+        </div>
+        <Link to="/tickets/new" className="btn btn-primary">
           + New Ticket
         </Link>
       </div>
 
-      {/* filter buttons */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-        {['', 'open', 'in_progress', 'pending_review', 'resolved', 'closed'].map(f => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            style={{
-              padding: '6px 14px', borderRadius: 20, border: 'none', cursor: 'pointer', fontSize: 13,
-              background: filter === f ? '#7c83fd' : '#e8e8e8',
-              color: filter === f ? '#fff' : '#555'
-            }}
-          >
-            {f ? f.replace('_', ' ') : 'All'}
-          </button>
-        ))}
+        {['', 'open', 'in_progress', 'pending_review', 'resolved', 'closed'].map(f => {
+          const active = filter === f
+          return (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              style={{
+                padding: '6px 14px', borderRadius: 20,
+                border: active ? '1px solid #4f46e5' : '1px solid #cbd5e1',
+                cursor: 'pointer', fontSize: 13, fontWeight: 600, textTransform: 'capitalize',
+                background: active ? '#4f46e5' : '#fff',
+                color: active ? '#fff' : '#475569',
+                boxShadow: 'var(--shadow-sm)',
+              }}
+            >
+              {f ? f.replace(/_/g, ' ') : 'All'}
+            </button>
+          )
+        })}
       </div>
 
       {filtered.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 60, color: '#aaa' }}>
-          <p style={{ fontSize: 40 }}>🎫</p>
-          <p>No tickets found.</p>
+        <div className="card" style={{ textAlign: 'center', padding: 54, color: '#64748b' }}>
+          <p style={{ fontWeight: 700, color: '#0f172a', fontSize: 16 }}>No tickets found.</p>
+          <p style={{ fontSize: 13.5, marginTop: 6 }}>Create a new support ticket to get help with an order or refund.</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {filtered.map(t => {
-            const color = statusColors[t.status] || '#888'
+            const st = statusStyles[t.status] || { color: '#475569', bg: '#f1f5f9' }
             return (
-              <div key={t.id} style={{
-                background: '#fff', borderRadius: 10, padding: 20,
-                boxShadow: '0 1px 6px rgba(0,0,0,0.07)',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-              }}>
+              <div key={t.id} className="card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
                 <div>
-                  <div style={{ fontWeight: 600, marginBottom: 4 }}>#{t.id} — {t.subject}</div>
-                  <div style={{ fontSize: 13, color: '#888' }}>
-                    {t.category} · {new Date(t.created_at).toLocaleDateString()}
+                  <div style={{ fontWeight: 700, fontSize: 15, color: '#0f172a', marginBottom: 4 }}>#{t.id} — {t.subject}</div>
+                  <div style={{ fontSize: 13, color: '#64748b', textTransform: 'capitalize' }}>
+                    {t.category}{t.order_id ? ` · Order #${t.order_id}` : ''} · {new Date(t.created_at).toLocaleDateString()}
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                  <span style={{ background: color + '22', color, padding: '3px 10px', borderRadius: 20, fontSize: 12 }}>
-                    {t.status.replace('_', ' ')}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{
+                    background: st.bg, color: st.color,
+                    padding: '3px 11px', borderRadius: 20, fontSize: 12, fontWeight: 600, textTransform: 'capitalize'
+                  }}>
+                    {t.status.replace(/_/g, ' ')}
                   </span>
-                  <Link to={`/tickets/${t.id}`} style={{ color: '#7c83fd', fontSize: 13, textDecoration: 'none' }}>
+                  <Link to={`/tickets/${t.id}/chat`} className="btn btn-secondary btn-sm">
+                    Open Chat
+                  </Link>
+                  <Link to={`/tickets/${t.id}`} style={{ fontSize: 13.5, fontWeight: 600, textDecoration: 'none' }}>
                     View →
                   </Link>
                 </div>

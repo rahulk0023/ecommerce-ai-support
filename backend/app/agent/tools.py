@@ -89,7 +89,7 @@ def process_refund(
         "refund_id": refund.id,
         "amount": refund.amount,
         "refund_status": refund.status.value,
-        "message": f"Refund of ₹{amount} has been initiated. You'll see it in 3-5 business days."
+        "message": f"Refund of ₹{amount:.2f} has been automatically approved and initiated. You'll see it in 3-5 business days."
     }
 
 
